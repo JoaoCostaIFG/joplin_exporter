@@ -10,6 +10,6 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "joplin": "^3.3.1",
+    "joplin": "^3.3.1"
   }
 }
