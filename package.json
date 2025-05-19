@@ -1,0 +1,15 @@
+{
+  "name": "joplin_exporter",
+  "version": "1.0.0",
+  "description": "Fetches my notebook from joplin.",
+  "license": "MIT",
+  "author": "JoaoCostaIFG",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "joplin": "^3.3.1",
+  }
+}

@@ -1,0 +1,7 @@
+# File: joplin_cron
+# Run the joplin export script every hour at minute 0
+# Output will be handled by the entrypoint/script itself to go to Docker logs.
+0 * * * * root . /etc/cron_env.sh; /app/export_joplin.sh >> /proc/1/fd/1 2>> /proc/1/fd/2
+
+# An empty line is required at the end of the file for cron to parse it correctly.
+
