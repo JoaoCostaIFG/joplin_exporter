@@ -16,12 +16,15 @@ log_error() {
 }
 
 usage() {
-  echo "Usage: $0 <notebook_name> <output_directory>"
+  echo "Usage: $0 [OPTIONS] <notebook_name> <output_directory>"
   echo "Exports a Joplin notebook to a local directory."
   echo ""
   echo "Arguments:"
   echo "  <notebook_name>    The name of the Joplin notebook to export (e.g., \"Wiki\" or \"My Notes\")."
   echo "  <output_directory> The local path where the notebook will be exported (e.g., ./exported_notes)."
+  echo ""
+  echo "Options:"
+  echo "  --optimize-images  Optimize exported images using Sharp (reduces file size)."
   echo ""
   echo "Required Environment Variables:"
   echo "  JOPLIN_PATH        URL Joplin's sever (e.g., \"https://joplin.example.com\")."
@@ -39,6 +42,14 @@ check_dependencies() {
   if ! npx joplin version &>/dev/null; then
     log_error "Joplin CLI (via npx) does not seem to be working. Ensure it can be run with 'npx joplin'."
     exit 1
+  fi
+  
+  # Check for node if optimize-images flag is used
+  if [[ "${OPTIMIZE_IMAGES:-false}" == "true" ]]; then
+    if ! command -v node &>/dev/null; then
+      log_error "node command not found. Required for image optimization."
+      exit 1
+    fi
   fi
 }
 
@@ -61,21 +72,50 @@ check_env_vars() {
 
 # --- Main Script Logic ---
 main() {
-  # Argument parsing
-  if [[ $# -eq 2 ]]; then
-    notebook_name="$1"
-    output_dir="$2"
-  elif [[ $# -eq 0 ]]; then
-    log_info "No command-line arguments provided. Trying environment variables JOPLIN_NOTEBOOK_NAME and JOPLIN_OUTPUT_DIR."
+  # Default values
+  local optimize_images=false
+  local notebook_name=""
+  local output_dir=""
+
+  # Parse command-line arguments
+  while [[ $# -gt 0 ]]; do
+    case $1 in
+      --optimize-images)
+        optimize_images=true
+        shift
+        ;;
+      -*)
+        log_error "Unknown option: $1"
+        usage
+        ;;
+      *)
+        if [[ -z "$notebook_name" ]]; then
+          notebook_name="$1"
+        elif [[ -z "$output_dir" ]]; then
+          output_dir="$1"
+        else
+          log_error "Too many arguments"
+          usage
+        fi
+        shift
+        ;;
+    esac
+  done
+
+  # If no positional arguments provided, try environment variables
+  if [[ -z "$notebook_name" || -z "$output_dir" ]]; then
+    log_info "Using environment variables JOPLIN_NOTEBOOK_NAME and JOPLIN_OUTPUT_DIR."
     notebook_name="${JOPLIN_NOTEBOOK_NAME:-}"
     output_dir="${JOPLIN_OUTPUT_DIR:-}"
+    
     if [[ -z "$notebook_name" || -z "$output_dir" ]]; then
       log_error "JOPLIN_NOTEBOOK_NAME or JOPLIN_OUTPUT_DIR environment variables are not set."
       usage
     fi
-  else
-    usage
   fi
+  
+  # Export for check_dependencies
+  export OPTIMIZE_IMAGES="$optimize_images"
 
   # Checks
   check_dependencies
@@ -84,6 +124,9 @@ main() {
   log_info "Starting Joplin export process..."
   log_info "Notebook to export: '$notebook_name'"
   log_info "Output directory: '$output_dir'"
+  if [[ "$optimize_images" == "true" ]]; then
+    log_info "Image optimization: ENABLED"
+  fi
 
   # --- Joplin Configuration ---
   log_info "Configuring Joplin sync target..."
@@ -130,6 +173,22 @@ main() {
     # Consider cleaning up the partially created output_dir if needed,
     # though joplin export might handle this or leave partial data.
     exit 1
+  fi
+
+  # --- Image Optimization (Optional) ---
+  if [[ "$optimize_images" == "true" ]]; then
+    log_info "Optimizing images in exported resources..."
+    resources_dir="$output_dir/_resources"
+    
+    if [ -d "$resources_dir" ]; then
+      script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+      if ! node "$script_dir/optimize-images.js" "$resources_dir"; then
+        log_error "Image optimization failed."
+        exit 1
+      fi
+    else
+      log_info "No _resources directory found, skipping image optimization."
+    fi
   fi
 
   log_info "Export successful!"
