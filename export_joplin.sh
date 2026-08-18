@@ -39,7 +39,9 @@ check_dependencies() {
     exit 1
   fi
   # We can also try to see if joplin-cli is accessible via npx
-  if ! npx joplin version &>/dev/null; then
+  # Note: 'joplin version' is broken in joplin >= 3.6.2 (bad require path),
+  # so use 'joplin help' which exercises the same full CLI/native module load.
+  if ! npx joplin help &>/dev/null; then
     log_error "Joplin CLI (via npx) does not seem to be working. Ensure it can be run with 'npx joplin'."
     exit 1
   fi
