@@ -83,4 +83,4 @@ docker run -d --name my-joplin-exporter \
 
 ## License
 
-This project is licensed under the MIT License - see the `LICENSE` file for details (you should create a `LICENSE` file with the MIT license text if you wish to use it).
+Licensed under the European Union Public Licence v. 1.2 (EUPL-1.2).
